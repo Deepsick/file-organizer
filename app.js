@@ -5,44 +5,27 @@ const [ source, destinationFolder, isDeleteSourceFolder ] = process.argv.slice(2
 
 
 const deleteFile = (file) => {
-  fs.unlink(file, (err) => {
-    if (err) {
-      console.error(err.message);
-      return;
-    }
-  });
-};
-
-const cleanFolder = (folder) => {
-  const files = readDir(folder);
-  for (const file of files) {
-    const filePath = join(folder, file);
-    if (isDirectory(filePath)) {
-      cleanFolder(filePath);
-      continue;
-    }
-    deleteFile(filePath);
+  try {
+    fs.unlinkSync(file);
+  } catch(err) {
+    console.error(err.message);
   }
-
-  deleteDir(folder);
 };
 
 const deleteDir = (folder) => {
-  fs.rmdir(folder, (err) => {
-    if (err) {
-      console.error(err.message);
-      return;
-    }
-  });
+  try {
+    fs.rmdirSync(folder);
+  } catch(err) {
+    console.error(err);
+  }
 };
 
 const copyFile = (filePath, fileName, destination) => {
-  fs.link(filePath, join(destination, fileName), (err) => {
-    if (err) {
-      console.error(err.message);
-      return;
-    }
-  });
+  try {
+    fs.copyFileSync(filePath, join(destination, fileName));
+  } catch (err) {
+    console.error(err.message);
+  }
 };
 
 const createFolder = (folder) =>  {
@@ -72,22 +55,24 @@ const organizeFiles = (folder = 'src', destination = 'build', isDeleted = false)
   const files = readDir(folder);
   for (const file of files) {
     const filePath = join(folder, file);
-      if (isDirectory(filePath)) {
-        organizeFiles(filePath, destinationFolder);
-        continue;
-      }
+    if (isDirectory(filePath)) {
+      organizeFiles(filePath, destinationFolder, isDeleted);
+      continue;
+    }
 
-      const letterFolder = file[0].toUpperCase();
-      const folderPath = join(destination, letterFolder);
-      createFolder(folderPath);
-      copyFile(filePath, file, folderPath);
+    const letterFolder = file[0].toUpperCase();
+    const folderPath = join(destination, letterFolder);
+    createFolder(folderPath);
+    copyFile(filePath, file, folderPath);
+    if (isDeleted) {
+      deleteFile(filePath);
+    }
   }
 
   if (isDeleted) {
-    cleanFolder(source);
+    deleteDir(folder);
   }
 };
-
 
 organizeFiles(source, destinationFolder, isDeleteSourceFolder);
 
