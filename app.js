@@ -1,76 +1,86 @@
 const fs = require('fs');
 const { join } = require('path');
+const { promisify } = require('util');
+
+const unlinkAsync = promisify(fs.unlink);
+const rmdirAsync = promisify(fs.rmdir);
+const copyFileAsync = promisify(fs.copyFile);
+const existsAsync = promisify(fs.exists);
+const mkdirAsync = promisify(fs.mkdir);
+const readdirAsync = promisify(fs.readdir);
+const statAsync = promisify(fs.stat);
 
 const [ source, destinationFolder, isDeleteSourceFolder ] = process.argv.slice(2);
 
 
-const deleteFile = (file) => {
+const deleteFile = async (file) => {
   try {
-    fs.unlinkSync(file);
+    await unlinkAsync(file);
   } catch(err) {
     console.error(err.message);
   }
 };
 
-const deleteDir = (folder) => {
+const deleteDir = async (folder) => {
   try {
-    fs.rmdirSync(folder);
+    await rmdirAsync(folder);
   } catch(err) {
     console.error(err);
   }
 };
 
-const copyFile = (filePath, fileName, destination) => {
+const copyFile = async (filePath, fileName, destination) => {
   try {
-    fs.copyFileSync(filePath, join(destination, fileName));
+    await copyFileAsync(filePath, join(destination, fileName));
   } catch (err) {
     console.error(err.message);
   }
 };
 
-const createFolder = (folder) =>  {
+const createFolder = async (folder) =>  {
   try {
-    if (!fs.existsSync(folder)) {
-      fs.mkdirSync(folder);
+    if (!await existsAsync(folder)) {
+      await mkdirAsync(folder);
     }
   } catch(err) {
     console.error(err.message);
   }
 }
 
-const readDir = (folder) => {
+const readDir = async (folder) => {
   try {
-    return fs.readdirSync(folder);
+    return await readdirAsync(folder);
   } catch(err) {
     console.error(err.message);
   }
 };
 
-const isDirectory = (file) => {
-  return fs.statSync(file).isDirectory();
+const isDirectory = async (file) => {
+  const stats = await statAsync(file);
+  return stats.isDirectory();
 };
 
-const organizeFiles = (folder = 'src', destination = 'build', isDeleted = false) => {
-  createFolder(destination);
-  const files = readDir(folder);
+const organizeFiles = async (folder = 'src', destination = 'build', isDeleted = false) => {
+  await createFolder(destination);
+  const files = await readDir(folder);
   for (const file of files) {
     const filePath = join(folder, file);
-    if (isDirectory(filePath)) {
-      organizeFiles(filePath, destinationFolder, isDeleted);
+    if (await isDirectory(filePath)) {
+      await organizeFiles(filePath, destinationFolder, isDeleted);
       continue;
     }
 
     const letterFolder = file[0].toUpperCase();
     const folderPath = join(destination, letterFolder);
-    createFolder(folderPath);
-    copyFile(filePath, file, folderPath);
+    await createFolder(folderPath);
+    await copyFile(filePath, file, folderPath);
     if (isDeleted) {
-      deleteFile(filePath);
+      await deleteFile(filePath);
     }
   }
 
   if (isDeleted) {
-    deleteDir(folder);
+    await deleteDir(folder);
   }
 };
 
