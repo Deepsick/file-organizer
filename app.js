@@ -12,7 +12,6 @@ const statAsync = promisify(fs.stat);
 
 const [ source, destinationFolder, isDeleteSourceFolder ] = process.argv.slice(2);
 
-
 const deleteFile = async (file) => {
   try {
     await unlinkAsync(file);
